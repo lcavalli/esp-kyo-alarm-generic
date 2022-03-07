@@ -71,6 +71,7 @@ class KyoAlarmComponent : public esphome::PollingComponent, public uart::UARTDev
             register_service(&KyoAlarmComponent::onAlarmDisarm, "disarm", {"code"});
             register_service(&KyoAlarmComponent::onAlarmArmHome, "arm_home", {"code"});
             register_service(&KyoAlarmComponent::onAlarmArmAway, "arm_away", {"code"});
+            register_service(&KyoAlarmComponent::onAlarmReset, "reset");
 
             // Set initial state
             alarmStatusSensor->publish_state("unavailable");
@@ -166,6 +167,10 @@ class KyoAlarmComponent : public esphome::PollingComponent, public uart::UARTDev
         const std::vector<uint8_t> cmdZoneBypassData = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
         const size_t RPL_ZONE_BYPASS_SIZE = 0;
 
+        const std::vector<uint8_t> cmdReset = {0x0f, 0x05, 0xf0, 0x01, 0x00};
+        const std::vector<uint8_t> cmdResetData = {0xff, 0x00};
+        const size_t RPL_RESET_SIZE = 0;
+
         const std::vector<uint8_t> cmdClose = {0x3c, 0x03, 0x00, 0x00, 0x00};
         const size_t RPL_CLOSE_SIZE = 0;
 
@@ -179,6 +184,34 @@ class KyoAlarmComponent : public esphome::PollingComponent, public uart::UARTDev
 
         enum class AlarmStatus {UNAVAILABLE, PENDING, ARMING, ARMED_AWAY, ARMED_HOME, DISARMED, TRIGGERED};
         AlarmStatus alarmStatus = AlarmStatus::UNAVAILABLE;
+
+        void onAlarmReset() {
+            std::vector<uint8_t> request = cmdReset;
+            std::vector<uint8_t> requestData = cmdResetData;
+            std::vector<uint8_t> requestClose = cmdClose;
+            std::vector<uint8_t> reply;
+
+            // Obtain UART mutex
+            while (GetMutex(&uartMutex) == false) {
+                delay(UPDATE_INT_MS / 10);
+            }
+
+            requestData[0] = partsList;
+
+            appendChecksum(request);
+            appendChecksum(requestData);
+            request.insert(request.end(), requestData.begin(), requestData.end());
+
+            if (sendRequest(request, reply, 500) && reply.size() == RPL_RESET_SIZE) {
+                appendChecksum(requestClose);
+                sendRequest(requestClose, reply, 100);
+            } else {
+                ESP_LOGE(LOG_TAG, "Reset alarm request failed");
+            }
+
+            // Release UART mutex
+            ReleaseMutex(&uartMutex);
+        }
 
         void onAlarmDisarm(const std::string code) {
             processCommandRequest("disarm", code);

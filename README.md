@@ -190,6 +190,11 @@ service: esphome.esp_kyo_alarm_disarm
 data:
   code: 123456
 ```
+Alarm memory can be reset with the service.
+
+```yaml
+service: esphome.esp_kyo_alarm_reset
+```
 
 Having the alarm system sensors integrated into Home Assistant allows extra configurations. A nice example is [window open, climate off](https://community.home-assistant.io/t/window-open-climate-off/257293) blueprint, to switch off the climate system when a window is opened.
 
