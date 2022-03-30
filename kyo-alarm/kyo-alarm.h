@@ -141,6 +141,43 @@ class KyoAlarmComponent : public esphome::PollingComponent, public uart::UARTDev
             }
         }
 
+        void onTimeSync(esphome::time::ESPTime time) {
+            std::vector<uint8_t> request = cmdSetTime;
+            std::vector<uint8_t> requestData = cmdSetTimeData;
+            std::vector<uint8_t> requestClose = cmdClose;
+            std::vector<uint8_t> reply;
+
+            if (time.is_valid()) {
+                // Obtain UART mutex
+                while (GetMutex(&uartMutex) == false) {
+                    delay(UPDATE_INT_MS / 10);
+                }
+
+                requestData[0] = time.day_of_month;
+                requestData[1] = time.month;
+                requestData[2] = static_cast<uint8_t>(time.year - 2000);
+                requestData[3] = time.hour;
+                requestData[4] = time.minute;
+                requestData[5] = time.second;
+
+                appendChecksum(request);
+                appendChecksum(requestData);
+                request.insert(request.end(), requestData.begin(), requestData.end());
+
+                if (sendRequest(request, reply, 100) && reply.size() == RPL_SET_TIME_SIZE) {
+                    appendChecksum(requestClose);
+                    sendRequest(requestClose, reply, 100);
+                } else {
+                    ESP_LOGE(LOG_TAG, "Set time request failed");
+                }
+
+                // Release UART mutex
+                ReleaseMutex(&uartMutex);
+            } else {
+                ESP_LOGE(LOG_TAG, "Invalid time");
+            }
+        }
+
     private:
         const std::vector<uint8_t> cmdGetAlarmInfo = {0xf0, 0x00, 0x00, 0x0b, 0x00};
         const size_t RPL_GET_ALARM_INFO_SIZE = 13;
@@ -166,6 +203,10 @@ class KyoAlarmComponent : public esphome::PollingComponent, public uart::UARTDev
         const std::vector<uint8_t> cmdZoneBypass = {0x0f, 0x01, 0xf0, 0x07, 0x00};
         const std::vector<uint8_t> cmdZoneBypassData = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
         const size_t RPL_ZONE_BYPASS_SIZE = 0;
+
+        const std::vector<uint8_t> cmdSetTime = {0x0f, 0x03, 0xf0, 0x05, 0x00};
+        const std::vector<uint8_t> cmdSetTimeData = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+        const size_t RPL_SET_TIME_SIZE = 0;
 
         const std::vector<uint8_t> cmdReset = {0x0f, 0x05, 0xf0, 0x01, 0x00};
         const std::vector<uint8_t> cmdResetData = {0xff, 0x00};

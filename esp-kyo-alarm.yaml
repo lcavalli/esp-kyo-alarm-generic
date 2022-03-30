@@ -44,6 +44,17 @@ wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_password
 
+# Reference time
+time:
+  - platform: homeassistant
+    id: ha_time
+    timezone: Europe/Rome
+    on_time_sync:
+      then:
+        lambda: |-
+          KyoAlarmComponent* k = (KyoAlarmComponent*) kyo;
+          k->onTimeSync(id(ha_time).now());
+
 # Configure UART link to KYO alarm
 uart:
   id: uart_bus
