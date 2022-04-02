@@ -119,7 +119,7 @@ binary_sensor:
         device_class: "garage_door"
 ```
 
-Appropriate device classes are (among all device classes supportedf by Home Assistant):
+Appropriate device classes are (among all device classes supported by Home Assistant):
 
 | Device class | Home Assistant icons                                                                                          |
 | ------------ | :-----------------------------------------------------------------------------------------------------------: |
