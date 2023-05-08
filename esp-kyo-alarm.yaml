@@ -7,8 +7,6 @@ esphome:
   platform: ESP8266
   board: d1_mini
   comment: "ESP KYO alarm integration"
-  libraries:
-    - "td-er/RABurton ESP8266 Mutex @ ^1.0.2"
   includes:
     - kyo-alarm/
 

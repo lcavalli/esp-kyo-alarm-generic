@@ -18,7 +18,6 @@
 
 #include <sstream>
 #include "esphome.h"
-#include "esp8266_mutex.h"
 
 #define LOG_TAG "esp-key-alarm"
 
@@ -64,9 +63,6 @@ class KyoAlarmComponent : public esphome::PollingComponent, public uart::UARTDev
             set_update_interval(UPDATE_INT_MS);
             set_setup_priority(setup_priority::AFTER_CONNECTION);
 
-            // Create UART mutex
-            CreateMutux(&uartMutex);
-
             // Register services
             register_service(&KyoAlarmComponent::onAlarmDisarm, "disarm", {"code"});
             register_service(&KyoAlarmComponent::onAlarmArmHome, "arm_home", {"code"});
@@ -78,23 +74,18 @@ class KyoAlarmComponent : public esphome::PollingComponent, public uart::UARTDev
         }
 
         void update() override {
-            if (GetMutex(&uartMutex) == true) {
-                if (alarmModel == AlarmModel::UNKNOWN) {
-                    getAlarmInfo();
-                } else if (partsList == 0) {
-                    getPartitionsList();
+            if (alarmModel == AlarmModel::UNKNOWN) {
+                getAlarmInfo();
+            } else if (partsList == 0) {
+                getPartitionsList();
+            } else {
+                static uint32_t tick = 0;
+
+                if ((tick++ % 2) == 0) {
+                    getStatus();
                 } else {
-                    static uint32_t tick = 0;
-
-                    if ((tick++ % 2) == 0) {
-                        getStatus();
-                    } else {
-                        getRealTimeStatus();
-                    }
+                    getRealTimeStatus();
                 }
-
-                // Release UART mutex
-                ReleaseMutex(&uartMutex);
             }
         }
 
@@ -106,11 +97,6 @@ class KyoAlarmComponent : public esphome::PollingComponent, public uart::UARTDev
             uint32_t data = 0;
 
             if(alarmStatus == AlarmStatus::DISARMED) {
-                // Obtain UART mutex
-                while (GetMutex(&uartMutex) == false) {
-                    delay(UPDATE_INT_MS / 10);
-                }
-
                 data = 1 << zoneId;
 
                 if (bypassFlag == true) {
@@ -135,9 +121,6 @@ class KyoAlarmComponent : public esphome::PollingComponent, public uart::UARTDev
                 } else {
                     ESP_LOGE(LOG_TAG, "Bypass zone request failed");
                 }
-
-                // Release UART mutex
-                ReleaseMutex(&uartMutex);
             }
         }
 
@@ -148,11 +131,6 @@ class KyoAlarmComponent : public esphome::PollingComponent, public uart::UARTDev
             std::vector<uint8_t> reply;
 
             if (time.is_valid()) {
-                // Obtain UART mutex
-                while (GetMutex(&uartMutex) == false) {
-                    delay(UPDATE_INT_MS / 10);
-                }
-
                 requestData[0] = time.day_of_month;
                 requestData[1] = time.month;
                 requestData[2] = static_cast<uint8_t>(time.year - 2000);
@@ -170,9 +148,6 @@ class KyoAlarmComponent : public esphome::PollingComponent, public uart::UARTDev
                 } else {
                     ESP_LOGE(LOG_TAG, "Set time request failed");
                 }
-
-                // Release UART mutex
-                ReleaseMutex(&uartMutex);
             } else {
                 ESP_LOGE(LOG_TAG, "Invalid time");
             }
@@ -215,8 +190,6 @@ class KyoAlarmComponent : public esphome::PollingComponent, public uart::UARTDev
         const std::vector<uint8_t> cmdClose = {0x3c, 0x03, 0x00, 0x00, 0x00};
         const size_t RPL_CLOSE_SIZE = 0;
 
-        mutex_t uartMutex;
-
         uint8_t pinsList[KYO_STORED_PINS * 3] = {0};
         uint8_t partsList = 0;
 
@@ -232,11 +205,6 @@ class KyoAlarmComponent : public esphome::PollingComponent, public uart::UARTDev
             std::vector<uint8_t> requestClose = cmdClose;
             std::vector<uint8_t> reply;
 
-            // Obtain UART mutex
-            while (GetMutex(&uartMutex) == false) {
-                delay(UPDATE_INT_MS / 10);
-            }
-
             requestData[0] = partsList;
 
             appendChecksum(request);
@@ -249,9 +217,6 @@ class KyoAlarmComponent : public esphome::PollingComponent, public uart::UARTDev
             } else {
                 ESP_LOGE(LOG_TAG, "Reset alarm request failed");
             }
-
-            // Release UART mutex
-            ReleaseMutex(&uartMutex);
         }
 
         void onAlarmDisarm(const std::string code) {
@@ -272,11 +237,6 @@ class KyoAlarmComponent : public esphome::PollingComponent, public uart::UARTDev
             std::vector<uint8_t> requestClose = cmdClose;
             std::vector<uint8_t> reply;
 
-            // Obtain UART mutex
-            while (GetMutex(&uartMutex) == false) {
-                delay(UPDATE_INT_MS / 10);
-            }
-
             // Verify PIN
             if (verifyPin(code) == true) {
                 // Build request data
@@ -296,8 +256,6 @@ class KyoAlarmComponent : public esphome::PollingComponent, public uart::UARTDev
                     alarmStatusSensor->publish_state("pending");
                     alarmStatus = AlarmStatus::PENDING;
                 } else {
-                    // Release UART mutex
-                    ReleaseMutex(&uartMutex);
                     return;
                 }
 
@@ -312,9 +270,6 @@ class KyoAlarmComponent : public esphome::PollingComponent, public uart::UARTDev
                     ESP_LOGE(LOG_TAG, "Process command request failed");
                 }
             }
-
-            // Release UART mutex
-            ReleaseMutex(&uartMutex);
         }
 
         bool getAlarmInfo() {
