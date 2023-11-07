@@ -175,7 +175,7 @@ With this configuration the PIN code is transmitted to the alarm panel over encr
 
 Additionally a Lovelace [Alarm Panel Card](https://www.home-assistant.io/dashboards/alarm-panel/) or [Tile Card](https://www.home-assistant.io/dashboards/tile/) to arm/disarm the alarm via the user interface can be addded.
 
-To manually control the arming/disarming of the alarm three services are available. All of them require a single parameter `code` providing the user PIN.
+To manually control the arming/disarming of the alarm four services are available. All of them require a single parameter `code` providing the user PIN.
 
 ```yaml
 service: esphome.esp_kyo_alarm_arm_home
@@ -190,10 +190,17 @@ data:
 ```
 
 ```yaml
+service: esphome.esp_kyo_alarm_arm_night
+data:
+  code: 123456
+```
+
+```yaml
 service: esphome.esp_kyo_alarm_disarm
 data:
   code: 123456
 ```
+
 Alarm memory can be reset with the service.
 
 ```yaml
