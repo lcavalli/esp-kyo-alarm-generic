@@ -12,16 +12,21 @@ esphome:
 
 # Global values
 globals:
-  # Arm home partitions (bitfield) as configured in alarm
+  # Arm home partitions (bitfield, LSB first) as configured in alarm (IDD)
   - id: armed_home
     type: uint8_t
     restore_value: no
     initial_value: '0x1'
-  # Arm away partitions (bitfield) as configured in alarm
-  - id: armed_away
+  # Arm night partitions (bitfield, LSB first) as configured in alarm (IID)
+  - id: armed_night
     type: uint8_t
     restore_value: no
     initial_value: '0x3'
+  # Arm away partitions (bitfield, LSB first) as configured in alarm (III)
+  - id: armed_away
+    type: uint8_t
+    restore_value: no
+    initial_value: '0x7'
 
 # Disable UART logging
 logger:

@@ -161,6 +161,10 @@ alarm_control_panel:
           - service: esphome.esp_kyo_alarm_arm_home
             data_template:
               code: "{{code}}"
+        arm_night:
+          - service: esphome.esp_kyo_alarm_arm_night
+            data_template:
+              code: "{{code}}"
         disarm:
           - service: esphome.esp_kyo_alarm_disarm
             data_template:
@@ -169,7 +173,7 @@ alarm_control_panel:
 
 With this configuration the PIN code is transmitted to the alarm panel over encrypted native API and the ESPHome firmware checks its value against the list of PINs stored in the alarm. This behaviuour can be modified in the source code to perform the check of the PIN inside Home Assistant itself or to avoid the check at all, but doing so will decrease the security level of this integration.
 
-Additionally a Lovelace [Alarm Panel Card](https://www.home-assistant.io/lovelace/alarm-panel/) to arm/disarm the alarm via the user interface can be addded.
+Additionally a Lovelace [Alarm Panel Card](https://www.home-assistant.io/dashboards/alarm-panel/) or [Tile Card](https://www.home-assistant.io/dashboards/tile/) to arm/disarm the alarm via the user interface can be addded.
 
 To manually control the arming/disarming of the alarm three services are available. All of them require a single parameter `code` providing the user PIN.
 

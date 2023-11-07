@@ -67,6 +67,7 @@ class KyoAlarmComponent : public esphome::PollingComponent, public uart::UARTDev
             register_service(&KyoAlarmComponent::onAlarmDisarm, "disarm", {"code"});
             register_service(&KyoAlarmComponent::onAlarmArmHome, "arm_home", {"code"});
             register_service(&KyoAlarmComponent::onAlarmArmAway, "arm_away", {"code"});
+            register_service(&KyoAlarmComponent::onAlarmArmNight, "arm_night", {"code"});
             register_service(&KyoAlarmComponent::onAlarmReset, "reset");
 
             // Set initial state
@@ -196,7 +197,7 @@ class KyoAlarmComponent : public esphome::PollingComponent, public uart::UARTDev
         enum class AlarmModel {UNKNOWN, KYO_4, KYO_8, KYO_8G, KYO_32, KYO_32G, KYO_8W, KYO_8GW};
         AlarmModel alarmModel = AlarmModel::UNKNOWN;
 
-        enum class AlarmStatus {UNAVAILABLE, PENDING, ARMING, ARMED_AWAY, ARMED_HOME, DISARMED, TRIGGERED};
+        enum class AlarmStatus {UNAVAILABLE, PENDING, ARMING, ARMED_AWAY, ARMED_HOME, ARMED_NIGHT, DISARMED, TRIGGERED};
         AlarmStatus alarmStatus = AlarmStatus::UNAVAILABLE;
 
         void onAlarmReset() {
@@ -231,6 +232,10 @@ class KyoAlarmComponent : public esphome::PollingComponent, public uart::UARTDev
             processCommandRequest("arm_away", code);
         }
 
+        void onAlarmArmNight(const std::string code) {
+            processCommandRequest("arm_night", code);
+        }
+
         void processCommandRequest(const std::string action, const std::string code) {
             std::vector<uint8_t> request = cmdCtrlPartitions;
             std::vector<uint8_t> requestData = cmdCtrlPartitionsData;
@@ -248,6 +253,11 @@ class KyoAlarmComponent : public esphome::PollingComponent, public uart::UARTDev
                 } else if (action == "arm_away") {
                     // Arm away partitions request
                     requestData[0] = armed_away->value() & partsList;
+                    alarmStatusSensor->publish_state("arming");
+                    alarmStatus = AlarmStatus::ARMING;
+                } else if (action == "arm_night") {
+                    // Arm night partitions request
+                    requestData[0] = armed_night->value() & partsList;
                     alarmStatusSensor->publish_state("arming");
                     alarmStatus = AlarmStatus::ARMING;
                 } else if (action == "disarm") {
@@ -326,6 +336,7 @@ class KyoAlarmComponent : public esphome::PollingComponent, public uart::UARTDev
                 ESP_LOGCONFIG(LOG_TAG, "Partitions list request completed [" BYTE_TO_BINARY_PATTERN "]", BYTE_TO_BINARY(partsList));
                 ESP_LOGCONFIG(LOG_TAG, "Arm home partitions [" BYTE_TO_BINARY_PATTERN "]", BYTE_TO_BINARY(armed_home->value() & partsList));
                 ESP_LOGCONFIG(LOG_TAG, "Arm away partitions [" BYTE_TO_BINARY_PATTERN "]", BYTE_TO_BINARY(armed_away->value() & partsList));
+                ESP_LOGCONFIG(LOG_TAG, "Arm night partitions [" BYTE_TO_BINARY_PATTERN "]", BYTE_TO_BINARY(armed_night->value() & partsList));
                 return (true);
             }
 
@@ -410,6 +421,10 @@ class KyoAlarmComponent : public esphome::PollingComponent, public uart::UARTDev
                         // All partitions are armed away
                         alarmStatusSensor->publish_state("armed_away");
                         alarmStatus = AlarmStatus::ARMED_AWAY;
+                    } else if ((armed == (armed_night->value() & partsList)) && (alarmStatus != AlarmStatus::ARMED_NIGHT)) {
+                        // All partitions are armed night
+                        alarmStatusSensor->publish_state("armed_night");
+                        alarmStatus = AlarmStatus::ARMED_NIGHT;
                     }
                 }
 
