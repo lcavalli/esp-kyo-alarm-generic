@@ -124,7 +124,7 @@ class KyoAlarmComponent : public esphome::PollingComponent, public uart::UARTDev
             }
         }
 
-        void onTimeSync(esphome::time::ESPTime time) {
+        void onTimeSync(esphome::ESPTime time) {
             std::vector<uint8_t> request = cmdSetTime;
             std::vector<uint8_t> requestData = cmdSetTimeData;
             std::vector<uint8_t> requestClose = cmdClose;
