@@ -7,12 +7,8 @@ esphome:
   platform: ESP8266
   board: d1_mini
   comment: "ESP KYO alarm integration"
-
-external_components:
-  - source:
-      type: git
-      url: https://github.com/lcavalli/esp-kyo-alarm-generic
-    components: [ kyo-alarm ]
+  includes:
+    - kyo-alarm/
 
 # Global values
 globals:
