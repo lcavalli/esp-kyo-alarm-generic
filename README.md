@@ -81,17 +81,23 @@ I used GPIO5 and GPIO4 (software UART) in place of ESP8266 hardware UART, since 
 Set the configuration of the partitions in *armed_home* and *armed_away* configurations. First partition is bit 0, last partition is bit 7.
 
 ```yaml
+# Global values
 globals:
-  # Arm home partitions (bitfield) as configured in alarm
+  # Arm home partitions (bitfield, LSB first) as configured in alarm (IDD)
   - id: armed_home
     type: uint8_t
     restore_value: no
     initial_value: '0x1'
-  # Arm away partitions (bitfield) as configured in alarm
-  - id: armed_away
+  # Arm night partitions (bitfield, LSB first) as configured in alarm (IID)
+  - id: armed_night
     type: uint8_t
     restore_value: no
     initial_value: '0x3'
+  # Arm away partitions (bitfield, LSB first) as configured in alarm (III)
+  - id: armed_away
+    type: uint8_t
+    restore_value: no
+    initial_value: '0x7'
 ```
 
 Map the available zones in your alarm, adding proper `device_class`. 
