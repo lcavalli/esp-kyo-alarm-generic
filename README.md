@@ -1,3 +1,6 @@
+> [!IMPORTANT]  
+> This repository has been archived in favor of [esphome-kyo-alarm-panel](https://github.com/lcavalli/esphome-kyo-alarm-panel) implemented as external component, compatible with newer ESPHome releases. The new component is fully compatible with current interface hardware and is feature equivalent.
+
 # ESP KYO Alarm
 
 ## Disclaimer
